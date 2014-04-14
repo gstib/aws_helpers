@@ -5,15 +5,14 @@ require 'aws-sdk-core'
 module AwsHelpers
   class Stack
 
-    attr_reader :stack_name, :template
-
-    def initialize(cloud_formation, stack_name, template)
+    def initialize(cloud_formation, stack_name, template, parameters)
       @cloud_formation = cloud_formation
-      @template = template
       @stack_name = stack_name
+      @template = template
+      @parameters = parameters || []
     end
 
-    def apply
+    def provision
 
       if create_rollback?
         delete
@@ -45,7 +44,7 @@ module AwsHelpers
     end
 
     def create_rollback?
-        aws_stack[:stack_status] == ROLLBACK_COMPLETE if exists?
+      aws_stack[:stack_status] == ROLLBACK_COMPLETE if exists?
     end
 
     def create
@@ -53,7 +52,8 @@ module AwsHelpers
 
       @cloud_formation.create_stack(
           stack_name: @stack_name,
-          template_body: @template
+          template_body: @template,
+          parameters: @parameters
       )
 
       until aws_stack
@@ -69,7 +69,8 @@ module AwsHelpers
       begin
         @cloud_formation.update_stack(
             stack_name: @stack_name,
-            template_body: @template
+            template_body: @template,
+            parameters: @parameters
         )
         StackProgress.report(self)
       rescue Aws::CloudFormation::Errors::ValidationError => validation_error

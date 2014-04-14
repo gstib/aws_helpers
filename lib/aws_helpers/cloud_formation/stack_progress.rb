@@ -17,9 +17,9 @@ module AwsHelpers
           when CREATE_COMPLETE, UPDATE_COMPLETE
             break
           when UPDATE_ROLLBACK_COMPLETE, ROLLBACK_FAILED, ROLLBACK_COMPLETE
-            raise "Failed to update #{name}"
+            raise "Failed to provision #{name}"
           else
-            sleep 15
+            sleep 30
         end
       end
 
