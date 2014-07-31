@@ -11,7 +11,7 @@ module AwsHelpers
         @cloud_formation = cloud_formation
         @stack_name = stack_name
         @template = template
-        @parameters = parameters || []
+        @parameters = parameters || {}
       end
 
       def provision
@@ -51,12 +51,11 @@ module AwsHelpers
 
       def create
         puts "Creating #{@stack_name}"
-
         @cloud_formation.create_stack(
-          stack_name: @stack_name,
-          template_body: @template,
-          parameters: @parameters
-        )
+          {
+            stack_name: @stack_name,
+            template_body: @template,
+          }.merge @parameters)
 
         until aws_stack
           sleep 5
@@ -70,10 +69,11 @@ module AwsHelpers
 
         begin
           @cloud_formation.update_stack(
-            stack_name: @stack_name,
-            template_body: @template,
-            parameters: @parameters
-          )
+            {
+              stack_name: @stack_name,
+              template_body: @template,
+            }.merge @parameters)
+
           StackProgress.report(self)
         rescue Aws::CloudFormation::Errors::ValidationError => validation_error
           if validation_error.message == 'No updates are to be performed.'
