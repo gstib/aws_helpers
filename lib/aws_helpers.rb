@@ -9,8 +9,8 @@ module AwsHelpers
 
   class << self
 
-    def stack_provision(cloud_formation, stack_name, template, parameters = nil)
-      CloudFormation::Stack.new(cloud_formation, stack_name, template, parameters).provision
+    def stack_provision(client, stack_name, template, options)
+      CloudFormation::Stack.new(client, stack_name, template, options).provision
     end
 
     def beanstalk_version_deploy(application, environment, version, version_contents)

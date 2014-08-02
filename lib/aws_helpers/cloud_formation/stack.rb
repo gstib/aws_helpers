@@ -7,11 +7,12 @@ module AwsHelpers
 
     class Stack
 
-      def initialize(cloud_formation, stack_name, template, parameters)
-        @cloud_formation = cloud_formation
+      def initialize(client, stack_name, template, options = {})
+        @client = client
         @stack_name = stack_name
         @template = template
-        @parameters = parameters || {}
+        @parameters = options[:parameters]
+        @capabilities = options[:capabilities]
       end
 
       def provision
@@ -28,14 +29,14 @@ module AwsHelpers
       end
 
       def aws_stack
-        @cloud_formation.describe_stacks(stack_name: @stack_name)[:stacks].first
+        @client.describe_stacks(stack_name: @stack_name)[:stacks].first
       end
 
       private
 
       def exists?
         begin
-          !@cloud_formation.describe_stacks(stack_name: @stack_name)[:stacks].first.nil?
+          !@client.describe_stacks(stack_name: @stack_name)[:stacks].first.nil?
         rescue Aws::CloudFormation::Errors::ValidationError => validation_error
           if validation_error.message == "Stack:#{@stack_name} does not exist"
             false
@@ -55,11 +56,7 @@ module AwsHelpers
 
       def create
         puts "Creating #{@stack_name}"
-        @cloud_formation.create_stack(
-          {
-            stack_name: @stack_name,
-            template_body: @template,
-          }.merge @parameters)
+        @client.create_stack(create_request)
 
         until aws_stack
           sleep 5
@@ -70,14 +67,8 @@ module AwsHelpers
 
       def update
         puts "Updating #{@stack_name}"
-
         begin
-          @cloud_formation.update_stack(
-            {
-              stack_name: @stack_name,
-              template_body: @template,
-            }.merge @parameters)
-
+          @client.update_stack(create_request)
           StackProgress.report(self)
         rescue Aws::CloudFormation::Errors::ValidationError => validation_error
           if validation_error.message == 'No updates are to be performed.'
@@ -92,7 +83,7 @@ module AwsHelpers
       def delete
         puts "Deleting #{@stack_name}"
 
-        @cloud_formation.delete_stack(
+        @client.delete_stack(
           stack_name: @stack_name
         )
 
@@ -101,6 +92,17 @@ module AwsHelpers
         end
 
       end
+
+      def create_request
+        request = {
+          stack_name: @stack_name,
+          template_body: @template
+        }
+        request.merge!(parameters: @parameters) if @parameters
+        request.merge!(capabilities: @capabilities) if @capabilities
+        request
+      end
+
 
     end
 
