@@ -20,7 +20,11 @@ module AwsHelpers
           delete
         end
         exists? ? update : create
+        outputs
+      end
 
+      def outputs
+        aws_stack[:outputs].map { |output| output.to_h }
       end
 
       def aws_stack
