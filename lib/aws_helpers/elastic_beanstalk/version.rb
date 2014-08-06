@@ -1,23 +1,25 @@
 require 'aws-sdk-core'
-require_relative 'version_file'
 require_relative 'application_version'
+require_relative 'version_file'
+require_relative 'version_zip_folder'
+
 
 module AwsHelpers
   module ElasticBeanstalk
     class Version
 
-      def initialize(application, environment, version, version_contents)
-
-        raise_argument_error 'application' if application.nil?
-        raise_argument_error 'environment' if environment.nil?
-        raise_argument_error 'version' if version.nil?
-        raise_argument_error 'version_contents' if version_contents.nil?
+      def initialize(application, environment, version, version_contents, zip_folder=false)
+        raise_argument_error 'application' unless application
+        raise_argument_error 'environment' unless environment
+        raise_argument_error 'version' unless version
+        raise_argument_error 'version_contents' unless version_contents
 
         @application = application
         @environment = environment
         @version = version
 
-        @version_file = VersionFile.new(@application, @version, version_contents)
+        klass = zip_folder ? AwsHelpers::ElasticBeanstalk::VersionZipFolder : VersionFile
+        @version_file = klass.new(@application, @version, version_contents)
         @application_version = ApplicationVersion.new(Aws::ElasticBeanstalk::Client.new)
       end
 

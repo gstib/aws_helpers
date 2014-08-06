@@ -13,8 +13,8 @@ module AwsHelpers
       CloudFormation::Stack.new(client, stack_name, template, options).provision
     end
 
-    def beanstalk_version_deploy(application, environment, version, version_contents)
-      ElasticBeanstalk::Version.new(application, environment, version, version_contents).deploy
+    def beanstalk_version_deploy(application, environment, version, version_contents, zip_folder)
+      ElasticBeanstalk::Version.new(application, environment, version, version_contents, zip_folder).deploy
     end
 
   end
