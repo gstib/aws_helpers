@@ -21,18 +21,22 @@ module AwsHelpers
           delete
         end
         exists? ? update : create
-        outputs
+        AwsHelpers::CloudFormation::Stack.outputs(@client, @stack_name)
       end
 
-      def outputs
-        aws_stack[:outputs].map { |output| output.to_h }
+      def self.outputs(client, stack_name)
+        aws_stack(client, stack_name)[:outputs].map { |output| output.to_h }
       end
 
-      def aws_stack
-        @client.describe_stacks(stack_name: @stack_name)[:stacks].first
+      def describe_stack
+        AwsHelpers::CloudFormation::Stack.aws_stack(@client, @stack_name)
       end
 
       private
+
+      def self.aws_stack(client, stack_name)
+        client.describe_stacks(stack_name: stack_name)[:stacks].first
+      end
 
       def exists?
         begin
@@ -47,18 +51,18 @@ module AwsHelpers
       end
 
       def status
-        aws_stack[:stack_status] if exists?
+        describe_stack[:stack_status] if exists?
       end
 
       def create_rollback?
-        aws_stack[:stack_status] == ROLLBACK_COMPLETE if exists?
+        describe_stack[:stack_status] == ROLLBACK_COMPLETE if exists?
       end
 
       def create
         puts "Creating #{@stack_name}"
         @client.create_stack(create_request)
 
-        until aws_stack
+        until describe_stack
           sleep 5
         end
 
