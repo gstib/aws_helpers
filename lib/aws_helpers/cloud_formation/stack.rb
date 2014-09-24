@@ -7,8 +7,8 @@ module AwsHelpers
 
     class Stack
 
-      def initialize(client, stack_name, template, options = {})
-        @client = client
+      def initialize(stack_name, template, options = {})
+        @client = Aws::CloudFormation::Client.new
         @stack_name = stack_name
         @template = template
         @parameters = options[:parameters]
@@ -16,38 +16,41 @@ module AwsHelpers
       end
 
       def provision
-
         if create_rollback?
           delete
         end
         exists? ? update : create
-        AwsHelpers::CloudFormation::Stack.outputs(@client, @stack_name)
+        AwsHelpers::CloudFormation::Stack.outputs(@stack_name, @client)
       end
 
-      def self.outputs(client, stack_name)
-        aws_stack(client, stack_name)[:outputs].map { |output| output.to_h }
+      def self.outputs(stack_name, client = Aws::CloudFormation::Client.new)
+        describe_stack(stack_name, client)[:outputs].map { |output| output.to_h }
       end
 
-      def describe_stack
-        AwsHelpers::CloudFormation::Stack.aws_stack(@client, @stack_name)
-      end
-
-      private
-
-      def self.aws_stack(client, stack_name)
-        client.describe_stacks(stack_name: stack_name)[:stacks].first
-      end
-
-      def exists?
+      def self.exists?(stack_name, client = Aws::CloudFormation::Client.new)
         begin
-          !@client.describe_stacks(stack_name: @stack_name)[:stacks].first.nil?
+          !describe_stack(stack_name, client).nil?
         rescue Aws::CloudFormation::Errors::ValidationError => validation_error
-          if validation_error.message == "Stack:#{@stack_name} does not exist"
+          if validation_error.message == "Stack:#{stack_name} does not exist"
             false
           else
             raise validation_error
           end
         end
+      end
+
+      def describe_stack
+        AwsHelpers::CloudFormation::Stack.describe_stack(@stack_name, @client)
+      end
+
+      private
+
+      def self.describe_stack(stack_name, client)
+        client.describe_stacks(stack_name: stack_name)[:stacks].first
+      end
+
+      def exists?
+        AwsHelpers::CloudFormation::Stack.exists?(@stack_name, @client)
       end
 
       def status
@@ -106,7 +109,6 @@ module AwsHelpers
         request.merge!(capabilities: @capabilities) if @capabilities
         request
       end
-
 
     end
 
