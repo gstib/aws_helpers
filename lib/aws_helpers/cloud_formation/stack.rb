@@ -11,11 +11,13 @@ module AwsHelpers
         @client = Aws::CloudFormation::Client.new
         @stack_name = stack_name
         @template = template
+        @bucket_name = options[:bucket_name]
         @parameters = options[:parameters]
         @capabilities = options[:capabilities]
       end
 
       def provision
+        upload_to_s3
         if create_rollback?
           delete
         end
@@ -44,6 +46,30 @@ module AwsHelpers
       end
 
       private
+
+      def upload_to_s3
+        if s3_template?
+          puts "Uploading #{@stack_name} to S3 bucket #{@bucket_name} "
+          s3 = Aws::S3::Client.new
+          s3.put_object(
+            bucket: @bucket_name,
+            key: @stack_name,
+            body: @template
+          )
+        end
+      end
+
+      def s3_location
+        client = Aws::S3::Client.new
+        resp = client.get_bucket_location(
+          bucket: @bucket_name,
+        )
+        resp[:location_constraint]
+      end
+
+      def s3_template?
+        !@bucket_name.nil?
+      end
 
       def self.describe_stack(stack_name, client)
         client.describe_stacks(stack_name: stack_name)[:stacks].first
@@ -89,11 +115,9 @@ module AwsHelpers
 
       def delete
         puts "Deleting #{@stack_name}"
-
         @client.delete_stack(
           stack_name: @stack_name
         )
-
         while exists?
           sleep 5
         end
@@ -101,10 +125,12 @@ module AwsHelpers
       end
 
       def create_request
-        request = {
-          stack_name: @stack_name,
-          template_body: @template
-        }
+        request = { stack_name: @stack_name }
+        if s3_template?
+          request.merge!(template_url: "https://s3-#{s3_location}.amazonaws.com/#{@bucket_name}/#{@stack_name}")
+        else
+          request.merge!(template_body: @template)
+        end
         request.merge!(parameters: @parameters) if @parameters
         request.merge!(capabilities: @capabilities) if @capabilities
         request
