@@ -7,7 +7,7 @@ module AwsHelpers
       def self.report(stack)
 
         loop do
-          aws_stack = stack.aws_stack
+          aws_stack = stack.describe_stack
 
           status = aws_stack[:stack_status]
           name = aws_stack[:stack_name]

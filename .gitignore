@@ -15,3 +15,11 @@ spec/reports
 test/tmp
 test/version_tmp
 tmp
+.idea/.rakeTasks
+.idea/aws_helpers.iml
+.idea/encodings.xml
+.idea/misc.xml
+.idea/modules.xml
+.idea/scopes/scope_settings.xml
+.idea/vcs.xml
+.idea/workspace.xml
