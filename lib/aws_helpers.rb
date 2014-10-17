@@ -1,6 +1,7 @@
 require 'aws_helpers/version'
 require_relative '../lib/aws_helpers/cloud_formation/stack'
 require_relative '../lib/aws_helpers/elastic_beanstalk/version'
+require_relative '../lib/aws_helpers/rds/instance'
 
 module AwsHelpers
   extend self
@@ -29,6 +30,10 @@ module AwsHelpers
 
     def beanstalk_upload(application, version, version_contents, zip_folder)
       ElasticBeanstalk::Version.new.upload(application, version, version_contents, zip_folder)
+    end
+
+    def snapshot_rds(db_instance_id)
+      RDS::Instance.new(db_instance_id).snapshot
     end
 
   end
